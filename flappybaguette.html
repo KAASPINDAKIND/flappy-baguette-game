@@ -1,0 +1,177 @@
+
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flappy Baguette</title>
+<style>
+  body {
+    display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f0f0;
+    font-family: Arial, sans-serif;
+  }
+  canvas {
+    background: #fff;
+    border: 2px solid #333;
+    display: block;
+  }
+  #restartBtn {
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div>
+  <canvas id="gameCanvas" width="720" height="480"></canvas>
+  <br />
+  <button id="restartBtn">🔁 Opnieuw spelen</button>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const restartBtn = document.getElementById("restartBtn");
+
+let gravity = 0.25;
+const jump = -9;
+
+let score, highScore = 0, bird, pipes, gameRunning;
+let scrollSpeed = 2;
+let currentGap = 240;
+
+const minGap = 190;
+const pipeWidth = 80;
+
+// Gebruik de directe URL's van jouw WordPress afbeeldingen
+const birdImg = new Image();
+birdImg.src = "https://baguettistans.wordpress.com/wp-content/uploads/2025/05/oip.jpg";
+
+const pipeImg = new Image();
+pipeImg.src = "https://baguettistans.wordpress.com/wp-content/uploads/2025/05/chjpdmf0zs9sci9pbwfnzxmvd2vic2l0zs8ymdiyltewl2zyzgvzc2vydf9yyxnwymvycmllc193aglwx2nyzwftlwltywdllwpvyjeymdgucg5n.jpg";
+
+if (localStorage.getItem("highScore")) {
+  highScore = parseInt(localStorage.getItem("highScore"));
+}
+
+function initGame() {
+  score = 0;
+  scrollSpeed = 2;
+  currentGap = 240;
+  gameRunning = true;
+
+  bird = {
+    x: 120,
+    y: 200,
+    width: 60,
+    height: 45,
+    velocity: 0
+  };
+
+  pipes = [];
+  pipes.push({ x: canvas.width + 100, offset: Math.floor(Math.random() * 150) - 75 });
+  restartBtn.style.display = "none";
+  draw();
+}
+
+document.addEventListener("keydown", () => {
+  if (gameRunning) {
+    bird.velocity = jump;
+  }
+});
+
+restartBtn.addEventListener("click", initGame);
+
+function gameOver() {
+  gameRunning = false;
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem("highScore", highScore);
+  }
+  restartBtn.style.display = "inline-block";
+}
+
+function draw() {
+  if (!gameRunning) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Teken vogel
+  ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+
+  for (let i = 0; i < pipes.length; i++) {
+    const pipeX = pipes[i].x;
+    const offset = pipes[i].offset;
+
+    const topHeight = (canvas.height - currentGap) / 2 + offset;
+    const bottomY = topHeight + currentGap;
+    const bottomHeight = canvas.height - bottomY;
+
+    // Bovenste pipe
+    ctx.drawImage(pipeImg, pipeX, 0, pipeWidth, topHeight);
+    // Onderste pipe
+    ctx.drawImage(pipeImg, pipeX, bottomY, pipeWidth, bottomHeight);
+
+    // Botsing
+    if (
+      bird.x < pipeX + pipeWidth &&
+      bird.x + bird.width > pipeX &&
+      (bird.y < topHeight || bird.y + bird.height > bottomY)
+    ) {
+      gameOver();
+      return;
+    }
+
+    pipes[i].x -= scrollSpeed;
+
+    // Score
+    if (pipeX + pipeWidth === bird.x) {
+      score++;
+
+      // Verklein de maximale gap om de 5 punten
+      if (score % 5 === 0 && currentGap > minGap) {
+        currentGap -= 5;
+      }
+
+      // Verhoog snelheid om de 10 punten
+      if (score % 10 === 0) {
+        scrollSpeed += 0.5;
+      }
+    }
+
+    // Nieuwe pipe toevoegen
+    if (pipeX === 400) {
+      pipes.push({
+        x: canvas.width,
+        offset: Math.floor(Math.random() * 150) - 75
+      });
+    }
+  }
+
+  // Gravity & beweging
+  bird.velocity += gravity;
+  bird.y += bird.velocity;
+
+  if (bird.y > canvas.height || bird.y < 0) {
+    gameOver();
+    return;
+  }
+
+  // Score & Highscore
+  ctx.fillStyle = "black";
+  ctx.font = "24px Arial";
+  ctx.fillText("Score: " + score, 20, 40);
+  ctx.fillText("Highscore: " + highScore, 20, 70);
+
+  requestAnimationFrame(draw);
+}
+
+initGame();
+</script>
+
+</body>
+</html>
