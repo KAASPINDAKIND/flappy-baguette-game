@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Flappy Baguette</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background-color: #cceeff;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Flappy Baguette</h1>
+<canvas id="gameCanvas" width="800" height="540" style="border:1px solid #000;"></canvas>
+<br>
+<button id="restartBtn" style="display:none; padding:10px 20px; font-size:16px;">🔁 Opnieuw spelen</button>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const restartBtn = document.getElementById("restartBtn");
+
+const gravity = 0.2;
+const jump = -8;
+const pipeWidth = 80;
+const pipeGapMax = 240;
+const pipeGapMin = 190;
+
+let score, highScore = 0, bird, pipes, gameRunning;
+
+const birdImg = new Image();
+birdImg.src = "https://baguettistans.wordpress.com/wp-content/uploads/2025/05/oip.jpg";
+
+const pipeImg = new Image();
+pipeImg.src = "https://baguettistans.wordpress.com/wp-content/uploads/2025/05/chjpdmf0zs9sci9pbwfnzxmvd2vic2l0zs8ymdiyltewl2zyzgvzc2vydf9yyxnwymvycmllc193aglwx2nyzwftlwltywdllwpvyjeymdgucg5n.jpg";
+
+function getPipeGap(score) {
+  const gap = pipeGapMax - Math.floor(score / 5) * 5;
+  return Math.max(gap, pipeGapMin);
+}
+
+function initGame() {
+  score = 0;
+  gameRunning = true;
+  bird = {
+    x: 120,
+    y: 200,
+    width: 60,
+    height: 45,
+    velocity: 0
+  };
+  pipes = [];
+  pipes.push({ x: canvas.width + 100, offset: Math.floor(Math.random() * 150) - 75 });
+  restartBtn.style.display = "none";
+  draw();
+}
+
+document.addEventListener("keydown", function (e) {
+  if (e.code === "Space") {
+    if (gameRunning) {
+      bird.velocity = jump;
+    } else {
+      initGame(); // spatiebalk herstart spel
+    }
+  }
+});
+
+restartBtn.addEventListener("click", initGame);
+
+function gameOver() {
+  gameRunning = false;
+  if (score > highScore) highScore = score;
+  restartBtn.style.display = "inline-block";
+}
+
+function draw() {
+  if (!gameRunning) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Teken stokbrood
+  ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+
+  const currentGap = getPipeGap(score);
+
+  for (let i = 0; i < pipes.length; i++) {
+    const pipeX = pipes[i].x;
+    const offset = pipes[i].offset;
+
+    const topHeight = (canvas.height - currentGap) / 2 + offset;
+    const bottomY = topHeight + currentGap;
+    const bottomHeight = canvas.height - bottomY;
+
+    // Bovenste pijp
+    ctx.drawImage(pipeImg, pipeX, 0, pipeWidth, topHeight);
+
+    // Onderste pijp
+    ctx.drawImage(pipeImg, pipeX, bottomY, pipeWidth, bottomHeight);
+
+    // Botsing check
+    if (
+      bird.x < pipeX + pipeWidth &&
+      bird.x + bird.width > pipeX &&
+      (bird.y < topHeight || bird.y + bird.height > bottomY)
+    ) {
+      gameOver();
+      return;
+    }
+
+    pipes[i].x -= 2;
+
+    // Score verhogen
+    if (pipeX + pipeWidth === bird.x) {
+      score++;
+    }
+
+    // Nieuwe pijp
+    if (pipeX === 400) {
+      pipes.push({
+        x: canvas.width,
+        offset: Math.floor(Math.random() * 150) - 75
+      });
+    }
+  }
+
+  // Zwaartekracht
+  bird.velocity += gravity;
+  bird.y += bird.velocity;
+
+  // Buiten scherm
+  if (bird.y > canvas.height || bird.y < 0) {
+    gameOver();
+    return;
+  }
+
+  // Score tonen
+  ctx.fillStyle = "black";
+  ctx.font = "24px Arial";
+  ctx.fillText("Score: " + score, 20, 40);
+  ctx.fillText("Highscore: " + highScore, 20, 70);
+
+  requestAnimationFrame(draw);
+}
+
+initGame();
+</script>
+
+</body>
+</html>
